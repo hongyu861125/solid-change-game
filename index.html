@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>六年級自然實驗：固體的熱脹冷縮</title>
+    <style>
+        :root {
+            --primary: #d35400; /* 銅色系 */
+            --secondary: #2980b9;
+            --dark: #2c3e50;
+            --light: #ecf0f1;
+        }
+        body {
+            font-family: 'Microsoft JhengHei', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #e9ecef;
+            color: var(--dark);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            color: var(--primary);
+            text-align: center;
+            margin-top: 0;
+        }
+        .container {
+            width: 100%;
+            max-width: 950px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        /* 上方畫布區 */
+        #canvas-container {
+            width: 100%;
+            height: 450px;
+            background-color: #fafafa;
+            border-bottom: 2px solid #ddd;
+            position: relative;
+            cursor: grab;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        #canvas-container:active {
+            cursor: grabbing;
+        }
+        /* 下方控制與學習單區 */
+        .panel {
+            padding: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            background-color: var(--light);
+        }
+        .control-box, .worksheet-box {
+            flex: 1;
+            min-width: 320px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        h3 {
+            margin-top: 0;
+            color: var(--primary);
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 5px;
+        }
+        .instructions {
+            background-color: #fff3e0;
+            padding: 10px;
+            border-left: 4px solid #f39c12;
+            margin-bottom: 15px;
+            font-size: 0.95em;
+        }
+        .data-monitor {
+            background: #34495e;
+            color: #f1c40f;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 1.1em;
+            line-height: 1.6;
+        }
+        /* 學習單元件 */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        th { background-color: var(--primary); color: white; }
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: 0.2s;
+        }
+        button:hover { background-color: #a04000; }
+        .quiz-section {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px dashed #ccc;
+        }
+        .question { margin-bottom: 12px; font-weight: 500;}
+        select { padding: 5px; font-size: 0.95em; width: 100%; margin-top: 5px; }
+        .feedback { font-weight: bold; display: block; margin-top: 5px; }
+        .correct { color: #27ae60; }
+        .wrong { color: #c0392b; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>🔥 固體熱脹冷縮：銅球與銅環實驗</h1>
+        
+        <div id="canvas-container">
+            <canvas id="simCanvas"></canvas>
+        </div>
+
+        <div class="panel">
+            <div class="control-box">
+                <h3>🎛️ 實驗操作與監測</h3>
+                <div class="instructions">
+                    💡 <b>操作方法：</b><br>
+                    1. 將 <b>銅球</b> 拖曳到「酒精燈」上方加熱。<br>
+                    2. 將 <b>銅球</b> 拖曳到「銅環」上，測試是否能穿過。<br>
+                    3. 將 <b>銅球</b> 拖曳到「冷水杯」中降溫。
+                </div>
+                <div class="data-monitor">
+                    <div>🌡️ 銅球溫度: <span id="ballTempDisplay">25.0</span> °C</div>
+                    <div>📏 銅球直徑: <span id="ballSizeDisplay">正常 (可通過)</span></div>
+                    <div>🎯 實驗結果: <span id="resultDisplay" style="color:#2ecc71;">等待測試...</span></div>
+                </div>
+                <div style="margin-top:10px; font-size:0.85em; color:#666;">
+                    *右上角為「微觀視角」，顯示固體金屬粒子在不同溫度下的震動與距離變化。
+                </div>
+            </div>
+
+            <div class="worksheet-box">
+                <h3>📝 探究學習單</h3>
+                <button id="btnRecord">📥 記錄當前測試數據</button>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>銅球狀態</th>
+                            <th>溫度 (°C)</th>
+                            <th>是否能穿過銅環？</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dataTable"></tbody>
+                </table>
+
+                <div class="quiz-section">
+                    <div class="question">
+                        1. 影片中提醒，為什麼<b>不能</b>把銅球和銅環「放在一起加熱」？
+                        <select id="q1">
+                            <option value="">請選擇...</option>
+                            <option value="1">因為會太燙，容易發生危險</option>
+                            <option value="2">因為銅環也會跟著熱脹冷縮，導致兩者都變大，無法看出銅球單獨的變化</option>
+                            <option value="3">因為一起加熱會導致銅環熔化</option>
+                        </select>
+                        <span id="f1" class="feedback"></span>
+                    </div>
+                    <div class="question">
+                        2. 為什麼加熱後的銅球會卡在銅環上？
+                        <select id="q2">
+                            <option value="">請選擇...</option>
+                            <option value="1">因為固體受熱後，內部粒子運動變劇烈，粒子間距離變大，體積膨脹</option>
+                            <option value="2">因為加熱會產生新的物質附著在銅球表面</option>
+                            <option value="3">因為銅球受熱變重了，所以卡住</option>
+                        </select>
+                        <span id="f2" class="feedback"></span>
+                    </div>
+                    <button id="btnSubmit">✔️ 驗證答案</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+
+        // 實驗環境物件
+        let ringStand = { x: 200, y: 250, innerRadius: 31 }; // 銅環內徑 31
+        let burner = { x: 450, y: 320, w: 80, h: 80, isOn: true };
+        let waterBath = { x: 700, y: 320, w: 100, h: 80 };
+        
+        // 銅球物件 (含有握柄)
+        let ball = {
+            x: 200, y: 100, 
+            baseRadius: 30, // 室溫下半徑 30 (可穿過 31 的環)
+            temp: 25, 
+            isDragging: false,
+            offsetX: 0, offsetY: 0,
+            status: "idle" // idle, heating, cooling, testing
+        };
+
+        // 微觀粒子 (用於右上角科學作圖)
+        let particles = [];
+        const gridCols = 5, gridRows = 5;
+        for(let r=0; r<gridRows; r++) {
+            for(let c=0; c<gridCols; c++) {
+                particles.push({ r: r, c: c, baseX: 0, baseY: 0 });
+            }
+        }
+
+        function resize() {
+            width = canvas.parentElement.clientWidth;
+            height = canvas.parentElement.clientHeight;
+            canvas.width = width;
+            canvas.height = height;
+            
+            // 重新排列位置以適應螢幕
+            ringStand.x = width * 0.25;
+            burner.x = width * 0.55;
+            waterBath.x = width * 0.85;
+
+            if(!ball.isDragging && ball.status === "idle") {
+                ball.x = ringStand.x;
+                ball.y = 100;
+            }
+        }
+        window.addEventListener('resize', resize);
+
+        // --- 拖曳互動邏輯 ---
+        function startDrag(e) {
+            let clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+            let clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+            let rect = canvas.getBoundingClientRect();
+            let mouseX = clientX - rect.left;
+            let mouseY = clientY - rect.top;
+
+            // 判斷是否點擊到銅球 (包含一點握柄區域)
+            let dist = Math.hypot(mouseX - ball.x, mouseY - ball.y);
+            if (dist <= ball.baseRadius + 20) {
+                ball.isDragging = true;
+                ball.status = "dragging";
+                ball.offsetX = mouseX - ball.x;
+                ball.offsetY = mouseY - ball.y;
+            }
+        }
+
+        function drag(e) {
+            if (!ball.isDragging) return;
+            e.preventDefault();
+            let clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+            let clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+            let rect = canvas.getBoundingClientRect();
+            ball.x = clientX - rect.left - ball.offsetX;
+            ball.y = clientY - rect.top - ball.offsetY;
+        }
+
+        function endDrag() {
+            if(ball.isDragging) {
+                ball.isDragging = false;
+                
+                // 判斷放置區域
+                let dropY = ball.y;
+                let dropX = ball.x;
+
+                // 1. 放在酒精燈上 (加熱區)
+                if (Math.abs(dropX - burner.x) < 60 && dropY > burner.y - 100) {
+                    ball.x = burner.x;
+                    ball.y = burner.y - 60;
+                    ball.status = "heating";
+                }
+                // 2. 放在冷水杯 (冷卻區)
+                else if (Math.abs(dropX - waterBath.x) < 60 && dropY > waterBath.y - 100) {
+                    ball.x = waterBath.x;
+                    ball.y = waterBath.y;
+                    ball.status = "cooling";
+                }
+                // 3. 放在銅環上方 (測試區)
+                else if (Math.abs(dropX - ringStand.x) < 80 && dropY < ringStand.y + 50) {
+                    ball.x = ringStand.x;
+                    ball.status = "testing";
+                    
+                    // 物理碰撞運算：判斷是否能穿過
+                    let currentRadius = ball.baseRadius + (ball.temp - 25) * 0.05;
+                    if (currentRadius <= ringStand.innerRadius) {
+                        // 能穿過，掉落到環的下方
+                        ball.y = ringStand.y + 60;
+                        document.getElementById('resultDisplay').innerText = "✅ 成功穿過！";
+                        document.getElementById('resultDisplay').style.color = "#2ecc71";
+                    } else {
+                        // 卡住，停在環的上方
+                        ball.y = ringStand.y - currentRadius + 5;
+                        document.getElementById('resultDisplay').innerText = "❌ 卡住了！體積膨脹";
+                        document.getElementById('resultDisplay').style.color = "#e74c3c";
+                    }
+                }
+                // 4. 放回原處
+                else {
+                    ball.status = "idle";
+                }
+            }
+        }
+
+        canvas.addEventListener('mousedown', startDrag);
+        canvas.addEventListener('mousemove', drag);
+        window.addEventListener('mouseup', endDrag);
+        canvas.addEventListener('touchstart', startDrag, {passive: false});
+        canvas.addEventListener('touchmove', drag, {passive: false});
+        window.addEventListener('touchend', endDrag);
+
+        // --- 繪圖與物理迴圈 ---
+        function draw() {
+            ctx.clearRect(0, 0, width, height);
+            
+            // 畫桌面
+            ctx.fillStyle = "#bdc3c7";
+            ctx.fillRect(0, height - 30, width, 30);
+
+            // --- 狀態更新 (溫度與體積運算) ---
+            if (ball.status === "heating") {
+                ball.temp += 1.5; // 加熱
+                if(ball.temp > 200) ball.temp = 200; // 最高溫限制
+                document.getElementById('resultDisplay').innerText = "🔥 加熱中...";
+                document.getElementById('resultDisplay').style.color = "#f39c12";
+            } else if (ball.status === "cooling") {
+                ball.temp -= 5.0; // 泡水快速冷卻
+                if(ball.temp < 25) ball.temp = 25; // 最低溫限制
+                document.getElementById('resultDisplay').innerText = "❄️ 泡水冷卻中...";
+                document.getElementById('resultDisplay').style.color = "#3498db";
+            }
+
+            // 計算當前半徑 (溫度每上升1度，半徑增加 0.05)
+            let currentRadius = ball.baseRadius + (ball.temp - 25) * 0.05;
+
+            // 更新面板數據
+            document.getElementById('ballTempDisplay').innerText = ball.temp.toFixed(0);
+            let sizeState = (ball.temp > 45) ? "膨脹變大 ↗" : "正常 (可通過)";
+            document.getElementById('ballSizeDisplay').innerText = sizeState;
+
+            // --- 繪製設備 ---
+            
+            // 1. 酒精燈
+            ctx.fillStyle = "#7f8c8d";
+            ctx.fillRect(burner.x - 30, burner.y, 60, 40); // 燈座
+            ctx.fillStyle = "rgba(230, 230, 230, 0.5)";
+            ctx.beginPath();
+            ctx.arc(burner.x, burner.y, 35, 0, Math.PI, true); // 玻璃瓶身
+            ctx.fill();
+            // 畫火焰 (動態)
+            if(ball.status !== "cooling") {
+                let flameH = 30 + Math.random() * 10;
+                ctx.fillStyle = "rgba(231, 76, 60, 0.8)";
+                ctx.beginPath();
+                ctx.moveTo(burner.x - 10, burner.y - 35);
+                ctx.quadraticCurveTo(burner.x, burner.y - 35 - flameH, burner.x + 10, burner.y - 35);
+                ctx.fill();
+                ctx.fillStyle = "rgba(241, 196, 15, 0.9)";
+                ctx.beginPath();
+                ctx.moveTo(burner.x - 5, burner.y - 35);
+                ctx.quadraticCurveTo(burner.x, burner.y - 35 - flameH/1.5, burner.x + 5, burner.y - 35);
+                ctx.fill();
+            }
+
+            // 2. 冷水杯
+            ctx.fillStyle = "rgba(189, 195, 199, 0.4)";
+            ctx.fillRect(waterBath.x - 40, waterBath.y - 30, 80, 70); // 燒杯
+            ctx.strokeStyle = "#95a5a6";
+            ctx.strokeRect(waterBath.x - 40, waterBath.y - 30, 80, 70);
+            ctx.fillStyle = "rgba(52, 152, 219, 0.5)"; // 水
+            ctx.fillRect(waterBath.x - 38, waterBath.y - 10, 76, 48);
+
+            // 3. 銅環支架 (立體視覺：分兩層畫)
+            // 底座與支架桿
+            ctx.fillStyle = "#34495e";
+            ctx.fillRect(ringStand.x - 50, height - 40, 100, 10);
+            ctx.fillRect(ringStand.x - 5, ringStand.y, 10, height - ringStand.y - 40);
+            
+            // 銅環的「後半部」
+            ctx.strokeStyle = "#a04000";
+            ctx.lineWidth = 6;
+            ctx.beginPath();
+            ctx.ellipse(ringStand.x, ringStand.y, ringStand.innerRadius + 3, 12, 0, Math.PI, Math.PI*2);
+            ctx.stroke();
+
+            // --- 繪製銅球 ---
+            // 畫握柄 (跟著球移動)
+            ctx.strokeStyle = "#7f8c8d";
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(ball.x, ball.y - currentRadius);
+            ctx.lineTo(ball.x, ball.y - currentRadius - 50); // 向上延伸的柄
+            ctx.stroke();
+            // 畫木質手把
+            ctx.fillStyle = "#8e44ad"; 
+            ctx.fillRect(ball.x - 6, ball.y - currentRadius - 70, 12, 20);
+
+            // 畫銅球主體
+            let gradient = ctx.createRadialGradient(ball.x - currentRadius/3, ball.y - currentRadius/3, currentRadius/4, ball.x, ball.y, currentRadius);
+            gradient.addColorStop(0, "#e67e22"); // 亮部
+            gradient.addColorStop(1, "#d35400"); // 暗部
+            
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, currentRadius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = "#a04000";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // --- 3. 銅環的「前半部」 (蓋在銅球上方，製造穿過或卡住的立體感) ---
+            ctx.strokeStyle = "#e67e22"; // 前半部亮一點
+            ctx.lineWidth = 6;
+            ctx.beginPath();
+            ctx.ellipse(ringStand.x, ringStand.y, ringStand.innerRadius + 3, 12, 0, 0, Math.PI);
+            ctx.stroke();
+
+
+            // ================= 科學微觀視角 (右上角) =================
+            let microBoxX = width - 220;
+            let microBoxY = 20;
+            let boxSize = 180;
+            
+            // 背景框
+            ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+            ctx.fillRect(microBoxX, microBoxY, boxSize, boxSize);
+            ctx.strokeStyle = "#3498db";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(microBoxX, microBoxY, boxSize, boxSize);
+            
+            ctx.fillStyle = "#2c3e50";
+            ctx.font = "14px Arial";
+            ctx.fillText("🔍 固體內部粒子 (微觀)", microBoxX + 15, microBoxY + 20);
+
+            // 計算粒子間距與震動幅度 (依據銅球溫度)
+            // 室溫時距離近，高溫時距離遠
+            let spacing = 25 + (ball.temp - 25) * 0.05; 
+            let vibrationAmplitude = (ball.temp - 25) * 0.02;
+
+            let startX = microBoxX + (boxSize - spacing * (gridCols - 1)) / 2;
+            let startY = microBoxY + 50 + (100 - spacing * (gridRows - 1)) / 2;
+
+            ctx.fillStyle = "#d35400";
+            particles.forEach(p => {
+                // 震動偏移量
+                let vx = (Math.random() - 0.5) * vibrationAmplitude;
+                let vy = (Math.random() - 0.5) * vibrationAmplitude;
+                
+                let px = startX + p.c * spacing + vx;
+                let py = startY + p.r * spacing + vy;
+
+                // 畫粒子
+                ctx.beginPath();
+                ctx.arc(px, py, 6, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 畫粒子間的彈簧連線 (簡化為線條)
+                ctx.strokeStyle = "rgba(189, 195, 199, 0.5)";
+                ctx.lineWidth = 1;
+                if(p.c < gridCols - 1) { // 往右連
+                    ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + spacing, py); ctx.stroke();
+                }
+                if(p.r < gridRows - 1) { // 往下連
+                    ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px, py + spacing); ctx.stroke();
+                }
+            });
+
+            requestAnimationFrame(draw);
+        }
+
+        // 初始化與啟動
+        resize();
+        draw();
+
+        // --- 學習單功能 ---
+        document.getElementById('btnRecord').addEventListener('click', () => {
+            let table = document.getElementById('dataTable');
+            let tr = document.createElement('tr');
+            
+            let stateStr = "室溫";
+            if(ball.temp > 100) stateStr = "加熱後";
+            else if (ball.temp < 30 && ball.temp > 24) stateStr = "冷卻後";
+
+            let tempStr = ball.temp.toFixed(0);
+            
+            // 判斷是否能穿過 (依據當前溫度理論值計算)
+            let theoreticalRadius = ball.baseRadius + (ball.temp - 25) * 0.05;
+            let passStr = (theoreticalRadius <= ringStand.innerRadius) ? "✔️ 可以" : "❌ 卡住";
+
+            tr.innerHTML = `<td>${stateStr}</td><td>${tempStr}</td><td>${passStr}</td>`;
+            table.appendChild(tr);
+        });
+
+        document.getElementById('btnSubmit').addEventListener('click', () => {
+            let q1 = document.getElementById('q1').value;
+            let q2 = document.getElementById('q2').value;
+            let f1 = document.getElementById('f1');
+            let f2 = document.getElementById('f2');
+
+            // Q1 驗證 (影片特別提醒的實驗變因)
+            if(q1 === "2") {
+                f1.innerHTML = "✅ 答對了！這很重要，如果銅環也受熱膨脹變大，銅球可能還是穿得過去，就觀察不到結果了。";
+                f1.className = "feedback correct";
+            } else if (q1 !== "") {
+                f1.innerHTML = "❌ 答錯了。請回想實驗是要觀察「銅球」的變化，如果銅環也變了會怎樣？";
+                f1.className = "feedback wrong";
+            }
+
+            // Q2 驗證 (科學原理)
+            if(q2 === "1") {
+                f2.innerHTML = "✅ 答對了！你可以觀察右上角的微觀圖示，粒子間距變大導致整體體積膨脹。";
+                f2.className = "feedback correct";
+            } else if (q2 !== "") {
+                f2.innerHTML = "❌ 答錯了。粒子本身不會變重或產生新物質，是「距離」發生了改變。";
+                f2.className = "feedback wrong";
+            }
+        });
+    </script>
+</body>
+</html>
